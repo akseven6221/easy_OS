@@ -1,7 +1,7 @@
 use std::fs::{read_dir, File};
 use std::io::{Result, Write};
 
-fn main () {
+fn main() {
     println!("cargo:rerun-if-changed=../user/src/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
     insert_app_data().unwrap();
@@ -17,7 +17,8 @@ fn insert_app_data() -> Result<()> {
             let mut name_with_ext = dir_entry.unwrap().file_name().into_string().unwrap();
             name_with_ext.drain(name_with_ext.find('.').unwrap()..name_with_ext.len());
             name_with_ext
-        }).collect();
+        })
+        .collect();
     apps.sort();
 
     writeln!(

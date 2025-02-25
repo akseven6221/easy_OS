@@ -1,6 +1,5 @@
 //! Uniprocessor interior mutability primitives
 
-
 use core::cell::{RefCell, RefMut};
 
 // not allow multiple threads to read the inner value at the same time compare to RefCell
@@ -21,4 +20,3 @@ impl<T> UPSafeCell<T> {
         self.inner.borrow_mut()
     }
 }
-
