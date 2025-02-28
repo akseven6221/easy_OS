@@ -5,15 +5,15 @@ KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 
-# Building mode argument
-ifeq ($(MODE), release)
-	MODE_ARG := --release
-endif
-
 # BOARD
 BOARD := qemu
 SBI ?= rustsbi
 BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
+
+# Building mode argument
+ifeq ($(MODE), release)
+	MODE_ARG := --release
+endif
 
 # KERNEL ENTRY
 KERNEL_ENTRY_PA := 0x80200000
@@ -42,7 +42,6 @@ kernel:
 	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG)
 	@rm src/linker.ld
-
 
 clean:
 	@cargo clean
@@ -78,7 +77,11 @@ debug: qemu-version-check build
 gdbserver: qemu-version-check build
 	@qemu-system-riscv64 $(QEMU_ARGS) -s -S
 
+# gdbclient:
+# 	@riscv64-unknown-elf-gdb -ex 'file $(KERNEL_ELF)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234'
 gdbclient:
-	@riscv64-unknown-elf-gdb -ex 'file $(KERNEL_ELF)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234'
+	@echo "Starting GDB client with user program symbols..."
+	@riscv64-unknown-elf-gdb -x ./gdb_init.gdb
+
 
 .PHONY: build env kernel clean disasm disasm-vim run-inner gdbserver gdbclient qemu-version-check

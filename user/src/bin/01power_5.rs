@@ -8,6 +8,7 @@ const LEN: usize = 100;
 
 #[unsafe(no_mangle)]
 fn main() -> i32 {
+    println!("Test power_5...");
     let p = 5u64;
     let m = 998244353u64;
     let iter: usize = 140000;

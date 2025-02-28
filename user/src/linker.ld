@@ -25,8 +25,10 @@ SECTIONS
         *(.sbss .sbss.*)
         end_bss = .;
     }
+    /*
     /DISCARD/ : {
         *(.en_frame)
         *(.debug*)
     }
+    */
 }

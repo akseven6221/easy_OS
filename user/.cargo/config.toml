@@ -3,7 +3,8 @@ target = "riscv64gc-unknown-none-elf"
 
 [target.riscv64gc-unknown-none-elf]
 rustflags = [
-    "-Clink-args=-Tsrc/linker.ld", "-Cforce-frame-pointers=yes"
+    "-Clink-args=-Tsrc/linker.ld", "-Cforce-frame-pointers=yes",
+    "-C", "debuginfo=2",  # 添加调试信息
 ]
 
 [net]

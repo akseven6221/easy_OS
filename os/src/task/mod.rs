@@ -2,6 +2,7 @@ mod context;
 mod switch;
 mod task;
 
+use crate::sbi::shutdown;
 use crate::config::MAX_APP_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
@@ -69,12 +70,13 @@ impl TaskManager {
 
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &mut inner.tasks[next].task_cx as *mut TaskContext;
-
+            drop(inner);
             unsafe {
                 __switch(current_task_cx_ptr, next_task_cx_ptr);
             }
         } else {
-            panic!("All applications completed!");
+            println!("All applications completed!");
+            shutdown(false);
         }
     }
 
