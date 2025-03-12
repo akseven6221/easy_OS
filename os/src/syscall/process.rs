@@ -1,6 +1,21 @@
-use crate::{task::{exit_current_and_run_next, suspend_current_and_run_next}, timer::get_time_ms};
+use crate::{
+    config::MAX_SYSCALL_NUM,
+    task::{exit_current_and_run_next, get_call_times, get_current_task_status, suspend_current_and_run_next, task::TaskStatus}, 
+    timer::get_time_ms
+};
 
 
+
+/// Task information
+#[allow(dead_code)]
+pub struct TaskInfo {
+    /// Task status in it's life cycle
+    status: TaskStatus,
+    /// The numbers of syscall called by task
+    syscall_times: [u32; MAX_SYSCALL_NUM],
+    /// Total running time of task
+    time: usize,
+}
 
 pub fn sys_exit(exit_code: i32) -> ! {
     println!("[kernel] Application exited with code {}", exit_code);
@@ -15,4 +30,13 @@ pub fn sys_yield() -> isize {
 
 pub fn sys_get_time() -> isize {
     get_time_ms() as isize
+}
+
+pub fn sys_task_info(_info: *mut TaskInfo) -> isize {
+    unsafe {
+        (*_info).status = get_current_task_status();
+        (*_info).syscall_times = get_call_times();
+        (*_info).time = get_time_ms();
+    }
+    0
 }

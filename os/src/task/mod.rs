@@ -1,6 +1,6 @@
 mod context;
 mod switch;
-mod task;
+pub mod task;
 
 use crate::sbi::shutdown;
 use crate::config::MAX_APP_NUM;
@@ -27,7 +27,8 @@ lazy_static! {
         let mut tasks = [
             TaskControlBlock {
                 task_cx: TaskContext::zero_init(),
-                task_status: TaskStatus::UnInit
+                task_status: TaskStatus::UnInit,
+                call_times: [0; 500],
             };
             MAX_APP_NUM
         ];
@@ -103,6 +104,24 @@ impl TaskManager {
         }
         panic!("unreachable in run_first_task!")
     }
+
+    fn get_current_task_status(&self) -> TaskStatus {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task].task_status
+    }
+
+    fn add_call_times(&self, syscall_id: usize) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].call_times[syscall_id] += 1;
+    }
+
+    fn get_call_times(&self) -> [u32; 500] {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        let cloned = inner.tasks[current].call_times.clone();
+        cloned
+    }
 }
 
 pub fn exit_current_and_run_next() {
@@ -129,4 +148,16 @@ fn mark_current_exited() {
 
 pub fn run_next_task() {
     TASK_MANAGER.run_next_task();
+}
+
+pub fn get_current_task_status() -> TaskStatus {
+    TASK_MANAGER.get_current_task_status()
+}
+
+pub fn add_call_times(syscall_id: usize) {
+    TASK_MANAGER.add_call_times(syscall_id);
+}
+
+pub fn get_call_times() -> [u32; 500] {
+    TASK_MANAGER.get_call_times()
 }

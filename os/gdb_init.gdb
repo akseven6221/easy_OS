@@ -2,7 +2,7 @@
 symbol-file
 
 # 先加载用户程序的符号表 (这个顺序很重要)
-add-symbol-file ../user/target/riscv64gc-unknown-none-elf/release/00power_3 0x80400000
+add-symbol-file ../user/target/riscv64gc-unknown-none-elf/release/04task_info 0x80400000
 
 # 然后加载内核的符号表
 file ./target/riscv64gc-unknown-none-elf/release/os
