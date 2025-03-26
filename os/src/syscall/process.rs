@@ -1,10 +1,11 @@
 use crate::{
     config::MAX_SYSCALL_NUM,
-    task::{exit_current_and_run_next, get_call_times, get_current_task_status, suspend_current_and_run_next, task::TaskStatus}, 
-    timer::get_time_ms
+    task::{
+        change_program_brk, exit_current_and_run_next, get_call_times, get_current_task_status,
+        suspend_current_and_run_next, task::TaskStatus,
+    },
+    timer::get_time_ms,
 };
-
-
 
 /// Task information
 #[allow(dead_code)]
@@ -39,4 +40,12 @@ pub fn sys_task_info(_info: *mut TaskInfo) -> isize {
         (*_info).time = get_time_ms();
     }
     0
+}
+
+pub fn sys_sbrk(size: i32) -> isize {
+    if let Some(old_brk) = change_program_brk(size) {
+        old_brk as isize
+    } else {
+        -1
+    }
 }

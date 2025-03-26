@@ -2,10 +2,11 @@ mod context;
 mod switch;
 pub mod task;
 
+use crate::loader::{get_app_data, get_num_app};
 use crate::sbi::shutdown;
-use crate::config::MAX_APP_NUM;
-use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use crate::trap::TrapContext;
+use alloc::vec::Vec;
 pub use context::TaskContext;
 use lazy_static::lazy_static;
 use switch::__switch;
@@ -17,24 +18,21 @@ pub struct TaskManager {
 }
 
 struct TaskManagerInner {
-    tasks: [TaskControlBlock; MAX_APP_NUM],
+    tasks: Vec<TaskControlBlock>,
     current_task: usize,
 }
 
 lazy_static! {
     pub static ref TASK_MANAGER: TaskManager = {
+        println!("init TASK_MANAGER");
         let num_app = get_num_app();
-        let mut tasks = [
-            TaskControlBlock {
-                task_cx: TaskContext::zero_init(),
-                task_status: TaskStatus::UnInit,
-                call_times: [0; 500],
-            };
-            MAX_APP_NUM
-        ];
+        println!("num_app = {}", num_app);
+        let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
-            tasks[i].task_cx = TaskContext::goto_restore(init_app_cx(i));
-            tasks[i].task_status = TaskStatus::Ready;
+            tasks.push(TaskControlBlock::new(
+                get_app_data(i),
+                i,
+            ));
         }
         // we do not need to tag TaskManager to Sync, compiler can induce TaskManager is Sync according to TaskManager's segment
         TaskManager {
@@ -97,16 +95,13 @@ impl TaskManager {
         drop(inner);
         let mut __unused = TaskContext::zero_init();
         unsafe {
-            __switch(
-                &mut __unused as *mut TaskContext,
-                next_task_cx_ptr
-            );
+            __switch(&mut __unused as *mut TaskContext, next_task_cx_ptr);
         }
         panic!("unreachable in run_first_task!")
     }
 
     fn get_current_task_status(&self) -> TaskStatus {
-        let inner = self.inner.exclusive_access();
+        let inner: core::cell::RefMut<'_, TaskManagerInner> = self.inner.exclusive_access();
         inner.tasks[inner.current_task].task_status
     }
 
@@ -121,6 +116,24 @@ impl TaskManager {
         let current = inner.current_task;
         let cloned = inner.tasks[current].call_times.clone();
         cloned
+    }
+
+    fn get_current_token(&self) -> usize {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_user_token()
+    }
+
+    fn get_current_trap_cx(&self) -> &mut TrapContext {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].get_trap_cx()
+    }
+
+    pub fn change_current_program_brk(&self, size: i32) -> Option<usize> {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].change_program_brk(size)
     }
 }
 
@@ -160,4 +173,17 @@ pub fn add_call_times(syscall_id: usize) {
 
 pub fn get_call_times() -> [u32; 500] {
     TASK_MANAGER.get_call_times()
+}
+
+pub fn current_user_token() -> usize {
+    TASK_MANAGER.get_current_token()
+}
+
+pub fn current_trap_cx() -> &'static mut TrapContext {
+    TASK_MANAGER.get_current_trap_cx()
+}
+
+/// Change the current 'Running' task's program break
+pub fn change_program_brk(size: i32) -> Option<usize> {
+    TASK_MANAGER.change_current_program_brk(size)
 }

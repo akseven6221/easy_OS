@@ -5,6 +5,9 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+extern crate bitflags;
+
 mod boards;
 
 #[macro_use]
@@ -13,12 +16,13 @@ mod config;
 mod lang_items;
 mod loader;
 mod logging;
+mod mm;
 mod sbi;
 mod sync;
 mod syscall;
 mod task;
-mod trap;
 mod timer;
+mod trap;
 
 use core::arch::global_asm;
 use log::*;
@@ -31,13 +35,15 @@ pub fn rust_main() -> ! {
     clear_bss();
     logging::init();
     info!("[kernel] Hello, world!");
+    mm::init();
+    info!("[kernel] back to world!");
+    mm::remap_test();
     trap::init();
-    loader::load_apps();
-    // trap::enable_timer_interrupt();
-    // timer::set_next_trigger();
+    // trap::enable_interrupt();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
     task::run_first_task();
-    panic!("Unreachable in rust_main");
-    
+    panic!("Unreachable in rust_main!");
 }
 
 fn clear_bss() {

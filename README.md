@@ -34,3 +34,6 @@
   2. 将这个TrapContext压入KernelStack, (此时还在Kernel态)
   3. 将KernelStack中压入TrapContext的栈顶指针传入restore函数, sp在trapcontext的上面(kernel_stack)
   4. 第一个app执行完之后返回0触发系统调用进入alltraps
+
+
+- ch4 内核的va->pa的映射是恒等映射, 应用不是

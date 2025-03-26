@@ -7,7 +7,7 @@
 // #![feature(panic_info_message)]
 
 #[macro_use]
-mod syscall;
+pub mod syscall;
 pub mod console;
 mod lang_items;
 
@@ -16,7 +16,6 @@ mod lang_items;
 // 将这段代码编译后的asm code放到.text.entry段, 方便后续链接的时候调整它的位置使得它能够作为用户库的入口。
 #[unsafe(link_section = ".text.entry")]
 pub extern "C" fn _start() -> ! {
-    clear_bss();
     exit(main());
     panic!("unreachable after sys_exit");
 }
@@ -28,15 +27,36 @@ fn main() -> i32 {
     panic!("cannot find main");
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum TaskStatus {
+    UnInit,
+    Ready,
+    Running,
+    Exited,
+}
 
-fn clear_bss() {
-    unsafe extern "C" {
-        fn start_bss();
-        fn end_bss();
+#[derive(Copy, Clone, Debug)]
+pub struct SyscallInfo {
+    pub id: usize,
+    pub times: usize,
+}
+
+const MAX_SYSCALL_NUM: usize = 500;
+
+pub struct TaskInfo {
+    pub status: TaskStatus,
+    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+    pub time: usize
+}
+
+impl TaskInfo {
+    pub fn new() -> Self {
+        Self {
+            status: TaskStatus::UnInit,
+            syscall_times: [0; MAX_SYSCALL_NUM],
+            time: 0
+        }
     }
-    (start_bss as usize..end_bss as usize).for_each(|addr| unsafe {
-        (addr as *mut u8).write_volatile(0);
-    });
 }
 
 use syscall::*;
@@ -54,4 +74,18 @@ pub fn yield_() -> isize {
 }
 pub fn get_time() -> isize {
     sys_get_time()
+}
+
+pub fn sleep(period_ms: usize) {
+    let start = get_time() as usize;
+    while get_time() as usize - start < period_ms {
+        sys_yield();
+    }
+}
+
+pub fn task_info(info: &TaskInfo) -> isize {
+    sys_task_info(info)
+}
+pub fn sbrk(size: i32) -> isize {
+    sys_sbrk(size)
 }
